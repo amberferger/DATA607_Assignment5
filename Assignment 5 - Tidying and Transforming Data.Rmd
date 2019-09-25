@@ -1,0 +1,69 @@
+---
+title: 'Assignment 5: Tidying and Transforming Data'
+author: "Amber Ferger"
+date: "9/24/2019"
+output: html_document
+---
+
+## Libraries
+```{r cars, eval = TRUE, echo = TRUE}
+library(tidyr)
+library(tidyverse)
+library(dplyr)
+library(ggplot2)
+```
+
+
+## Initial Tidying
+**First, let's import our data and take a quick look at it:** 
+
+```{r tidyData, eval = TRUE}
+airlineData <- as_tibble(read.csv('airlineData.csv', header = TRUE, stringsAsFactors = FALSE))
+airlineData
+
+```
+
+
+**The first 2 columns aren't labeled so let's put some column names on them. While we're at it, let's eliminate the blank row separating the 2 airlines and bring the Airline name down into rows that have a status of delayed.** 
+
+``` {r renameData, eval = TRUE}
+airlineData <- airlineData %>% 
+  rename(AIRLINE = X, STATUS = X.1)%>% 
+  filter(STATUS != '')
+
+# replace blank with airline above
+airlineData$AIRLINE[airlineData$AIRLINE == ''] <- airlineData$AIRLINE[str_detect(airlineData$AIRLINE,'[[:alpha:]]+')]
+
+airlineData
+
+```
+
+**The data looks better, but it's still not completely tidy. According to Wickham, each variable in the dataset should have its own column. In the current structure of the dataset, we have 2 problems:**
+
+- **The cities are listed as separate columns when they should be combined into 1 variable**
+- **The status column contains values that should be split into 2 separate variables**
+
+``` {r tidying2, eval = TRUE}
+
+airlineData <- airlineData %>% 
+  gather(CITY,NUM_FLIGHTS, -AIRLINE, -STATUS) %>%
+  spread(STATUS, NUM_FLIGHTS)
+
+colnames(airlineData) <- c('AIRLINE', 'CITY', 'DELAYED', 'ON_TIME')
+
+airlineData
+
+```
+
+## Analysis
+**Now that we have tidy data, we can compare the number of delays for each of the airlines. We can see from the summary that AM WEST has more delays than ALASKA!**
+
+``` {r analysis, eval = TRUE}
+airlineData %>% 
+  group_by(AIRLINE) %>%
+  summarise(TOTAL_DELAYS = sum(DELAYED), 
+            AVG_NUM_DELAYS = mean(DELAYED),
+            MEDIAN_DELAYS = median(DELAYED),
+            MIN_DELAYS = min(DELAYED), 
+            MAX_DELAYS = max(DELAYED)) 
+```
